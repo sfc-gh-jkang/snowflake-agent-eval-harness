@@ -1,0 +1,32 @@
+evaluation:
+  agent_params:
+    agent_name: "AGENT_EVAL_DEMO.AI.FULFILLMENT_ANALYST"
+    agent_type: "CORTEX AGENT"
+  source_metadata:
+    type: "dataset"
+    dataset_name: "AGENT_EVAL_DATASET_V5"
+
+# A Snowflake Dataset is a VERSIONED SNAPSHOT of the source table. Updating
+# EVAL.AGENT_EVAL_DATASET in place does NOT change an existing dataset, so the
+# corrected ground truth is only picked up under a NEW dataset_name. Reusing
+# the old name instead fails with 210007 "Dataset version
+# SYSTEM_AI_OBS_CORTEX_AGENT_DATASET_VERSION_DO_NOT_DELETE already exists".
+dataset:
+  dataset_type: "CORTEX AGENT"
+  dataset_name: "AGENT_EVAL_DATASET_V5"
+  table_name: "AGENT_EVAL_DEMO.EVAL.AGENT_EVAL_DATASET"
+  column_mapping:
+    query_text: "INPUT_QUERY"
+    ground_truth: "GROUND_TRUTH"
+
+metrics:
+  - "answer_correctness"
+  - "logical_consistency"
+  - "tool_selection_accuracy"
+  - "tool_execution_accuracy"
+
+# v5 == v4 metrics/agent; ONLY the dataset snapshot name differs.
+# Needed because the tenant rename forced CREATE OR REPLACE AGENT (the agent
+# instructions embedded a tenant business name), and re-running the eval
+# requires a fresh dataset snapshot name even though EVAL.AGENT_EVAL_DATASET
+# itself is unchanged and already free of the old names.

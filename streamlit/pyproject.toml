@@ -1,0 +1,31 @@
+[project]
+name = "customer-observability-app"
+version = "0.1.0"
+description = "AI observability dashboard -- native Cortex Agent + external orchestrator telemetry."
+requires-python = ">=3.11"
+
+# WHY THIS FILE EXISTS
+#
+# The app ran on the WAREHOUSE runtime and crashed on its very first tab with:
+#   TypeError: DataFrameSelectorMixin.dataframe() got an unexpected keyword
+#             argument 'hide_index'
+# The warehouse runtime's bundled Streamlit predates `hide_index` (added 1.23),
+# so the whole app died at line 180 before rendering anything.
+#
+# Fix is to run CONTAINER RUNTIME and pin a modern Streamlit here, rather than
+# degrade the app to a years-old API surface.
+#
+# CRITICAL: with a pyproject.toml present, container runtime installs from PyPI
+# and pre-installs NOTHING -- `streamlit[snowflake]` MUST be declared or the app
+# fails with "Failed to get the version of the Streamlit library". The
+# [snowflake] extra is what provides snowflake-snowpark-python and the connector
+# that `get_active_session()` needs.
+#
+# Verified against streamlit 1.61.1 locally: all 58 st.* calls in
+# observability_app.py bind cleanly, including hide_index and width='stretch'.
+dependencies = [
+    "streamlit[snowflake]==1.61.1",
+    "snowflake-snowpark-python[pandas]>=1.54.0",
+    "pandas>=2.3.0",
+    "altair>=5.5.0",
+]

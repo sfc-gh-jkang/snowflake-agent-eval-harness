@@ -1,0 +1,19 @@
+evaluation:
+  agent_params:
+    agent_name: "AGENT_EVAL_DEMO.AI.FULFILLMENT_ANALYST"
+    agent_type: "CORTEX AGENT"
+  source_metadata:
+    type: "dataset"
+    dataset_name: "AGENT_EVAL_DATASET"
+dataset:
+  dataset_type: "CORTEX AGENT"
+  dataset_name: "AGENT_EVAL_DATASET"
+  table_name: "AGENT_EVAL_DEMO.EVAL.AGENT_EVAL_DATASET"
+  column_mapping:
+    query_text: "INPUT_QUERY"
+    ground_truth: "GROUND_TRUTH"
+metrics:
+  - "answer_correctness"
+  - "logical_consistency"
+  - "tool_selection_accuracy"
+  - "tool_execution_accuracy"

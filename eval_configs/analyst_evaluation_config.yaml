@@ -1,0 +1,8 @@
+evaluation:
+  analyst_params:
+    analyst_name: "AGENT_EVAL_DEMO.AI.FULFILLMENT_SV"
+    analyst_type: "SEMANTIC VIEW"
+  source_metadata:
+    type: "verified_queries"
+metrics:
+  - "sql_correctness"

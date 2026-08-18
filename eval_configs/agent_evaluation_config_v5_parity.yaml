@@ -1,0 +1,156 @@
+evaluation:
+  agent_params:
+    agent_name: "AGENT_EVAL_DEMO.AI.FULFILLMENT_ANALYST"
+    agent_type: "CORTEX AGENT"
+  source_metadata:
+    type: "dataset"
+    dataset_name: "SHARED_EVAL_DATASET_V4"
+
+# APPLES-TO-APPLES CONFIG. Three things are aligned with the external agent's
+# scoring run (python/external_sim/score.py) so the two can be compared:
+#
+#   1. MODEL   both agents pinned to claude-opus-4-8
+#              (here: sql/07_agent.sql models.orchestration;
+#               external: ORCHESTRATION_MODEL in orchestrator.py)
+#   2. JUDGE   claude-4-sonnet on both sides. Not settable here (see below),
+#              so score.py is pinned to match the agent, not vice versa.
+#              Measured: leaving this unspecified did NOT give the documented
+#              llama3.1-70b default -- AGENT_V4 and TENANT_ISOLATION_V2 both ran
+#              claude-4-sonnet. Never assume the default; pin it.
+#   3. QUESTIONS  same 9 questions as the external agent, from
+#                 EVAL.SHARED_EVAL_DATASET. Previously the agent had 10 questions
+#                 and the external agent 9, with only ONE shared verbatim.
+#
+# A Snowflake Dataset is a VERSIONED SNAPSHOT of the source table. Updating the
+# table in place does NOT change an existing dataset, so a new dataset_name is
+# required whenever the questions change. Reusing a name fails with 210007.
+dataset:
+  dataset_type: "CORTEX AGENT"
+  dataset_name: "SHARED_EVAL_DATASET_V4"
+  table_name: "AGENT_EVAL_DEMO.EVAL.SHARED_EVAL_DATASET"
+  column_mapping:
+    query_text: "INPUT_QUERY"
+    ground_truth: "GROUND_TRUTH"
+
+# NOTE: llm_judge_name is NOT a valid field for EXECUTE_AI_EVALUATION -- it is a
+# TruLens RunConfig field only. Setting it here fails with:
+#   Invalid YAML configuration: Unrecognized field "llm_judge_name"
+# The agent eval judge is therefore NOT settable. Measured, it is claude-4-sonnet.
+# Judge parity is achieved from the other side instead: LLM_JUDGE in
+# python/external_sim/score.py is set to claude-4-sonnet to match this one.
+
+# The 4 built-in agent (GPA) metrics, PLUS 5 custom metrics that replicate the
+# AI Observability metric set the external agent is scored on. The two metric
+# surfaces are otherwise DISJOINT -- the built-in agent metrics and the
+# TruLens/AI-Observability metrics share no names -- so without these customs
+# there is no metric on which the two agents can be compared at all.
+#
+# The custom rubrics deliberately mirror the AI Observability definitions
+# (docs.snowflake.com/en/user-guide/snowflake-cortex/ai-observability/reference)
+# and all use the same 0-3 scale, which Snowflake normalizes to 0-1 -- matching
+# how the external scores are reported.
+metrics:
+  - "answer_correctness"
+  - "logical_consistency"
+  - "tool_selection_accuracy"
+  - "tool_execution_accuracy"
+
+  - name: "coherence"
+    prompt: |
+      You are grading COHERENCE, matching the Snowflake AI Observability
+      definition: whether the response is coherent and free of logical gaps,
+      inconsistencies or contradictions.
+      Judge ONLY the response text. Do not reward or penalise factual accuracy
+      here -- correctness is graded separately.
+      Question: {{input}}
+      Response: {{output}}
+      Score 0 if the response contradicts itself or is incoherent.
+      Score 1 if it is mostly readable but has a clear logical gap.
+      Score 2 if it is coherent with only a minor awkwardness.
+      Score 3 if it is fully coherent with no gaps or contradictions.
+      Return only the integer score.
+    score_ranges:
+      min_score: [0, 1]
+      median_score: [1, 2]
+      max_score: [2, 3]
+
+  - name: "answer_relevance"
+    prompt: |
+      You are grading ANSWER RELEVANCE, matching the Snowflake AI Observability
+      definition: whether the generated response is relevant to the user query.
+      This does NOT use ground truth -- do not judge whether the answer is
+      factually right, only whether it addresses what was asked.
+      Question: {{input}}
+      Response: {{output}}
+      Score 0 if the response does not address the question at all.
+      Score 1 if it is only tangentially related.
+      Score 2 if it addresses the question but includes irrelevant material or
+      leaves part of it unanswered.
+      Score 3 if it directly and completely addresses the question asked.
+      Return only the integer score.
+    score_ranges:
+      min_score: [0, 1]
+      median_score: [1, 2]
+      max_score: [2, 3]
+
+  - name: "context_relevance"
+    prompt: |
+      You are grading CONTEXT RELEVANCE, matching the Snowflake AI Observability
+      definition: whether the context retrieved by the agent's tools is relevant
+      to the user query.
+      Judge the tool calls and the data they returned, not the final wording.
+      Question: {{input}}
+      Tool calls and retrieved context: {{tool_info}}
+      Score 0 if no context was retrieved, or none of it is relevant.
+      Score 1 if the retrieved context is largely irrelevant to the question.
+      Score 2 if relevant context was retrieved alongside substantial noise, or
+      one needed source was missed.
+      Score 3 if the retrieved context is relevant and sufficient to answer.
+      Return only the integer score.
+    score_ranges:
+      min_score: [0, 1]
+      median_score: [1, 2]
+      max_score: [2, 3]
+
+  - name: "groundedness"
+    prompt: |
+      You are grading GROUNDEDNESS, matching the Snowflake AI Observability
+      definition: whether the response is supported by and grounded in the
+      context the agent actually retrieved.
+      A confident number that does not appear in the retrieved context is
+      ungrounded EVEN IF it happens to be correct -- that is the failure mode
+      being measured.
+      Question: {{input}}
+      Retrieved context and tool calls: {{tool_info}}
+      Response: {{output}}
+      Score 0 if the response's key claims are unsupported by the context.
+      Score 1 if most claims are unsupported or invented.
+      Score 2 if the main claim is supported but some details are not.
+      Score 3 if every substantive claim traces to the retrieved context.
+      Return only the integer score.
+    score_ranges:
+      min_score: [0, 1]
+      median_score: [1, 2]
+      max_score: [2, 3]
+
+  - name: "correctness"
+    prompt: |
+      You are grading CORRECTNESS, matching the Snowflake AI Observability
+      definition: how closely the response aligns with the ground truth.
+      The ground truth states the expected value AND the definition that must be
+      used. Several of these questions have more than one defensible metric
+      definition, and choosing the wrong one is incorrect even if the arithmetic
+      is right -- the ground truth names which definition is required.
+      Question: {{input}}
+      Ground truth: {{ground_truth}}
+      Response: {{output}}
+      Score 0 if the answer is wrong, missing, or uses a definition the ground
+      truth explicitly rules out.
+      Score 1 if it is directionally related but the value or definition is wrong.
+      Score 2 if it uses the right definition and is close but not fully aligned.
+      Score 3 if it matches the ground truth value and definition.
+      Return only the integer score.
+    score_ranges:
+      min_score: [0, 1]
+      median_score: [1, 2]
+      max_score: [2, 3]

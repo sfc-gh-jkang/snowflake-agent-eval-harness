@@ -1,0 +1,4 @@
+trulens-core>=2.1.2
+trulens-connectors-snowflake>=2.1.2
+trulens-providers-cortex>=2.1.2
+snowflake-connector-python>=3.6.0

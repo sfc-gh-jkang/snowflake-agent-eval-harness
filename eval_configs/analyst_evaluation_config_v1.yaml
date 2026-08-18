@@ -1,0 +1,21 @@
+# Baseline (weak v1) Cortex Analyst evaluation.
+#
+# Points explicitly at FULFILLMENT_SV_V1, the FROZEN v1 semantic view.
+#
+# WHY THIS FILE EXISTS: the original BASELINE_V1_FINAL run used
+# analyst_evaluation_config.yaml while FULFILLMENT_SV still held the v1
+# definition. Step G then replaced FULFILLMENT_SV in place with v2, so that
+# config can no longer reproduce a baseline -- re-running it scores v2 and
+# reports ~0.75 instead of ~0.375. Targeting the frozen view makes the
+# baseline reproducible independent of mutation order.
+#
+# The 20 verified queries in FULFILLMENT_SV_V1 are IDENTICAL to those in
+# FULFILLMENT_SV, which is what makes the before/after comparison honest.
+evaluation:
+  analyst_params:
+    analyst_name: "AGENT_EVAL_DEMO.AI.FULFILLMENT_SV_V1"
+    analyst_type: "SEMANTIC VIEW"
+  source_metadata:
+    type: "verified_queries"
+metrics:
+  - "sql_correctness"

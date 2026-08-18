@@ -1,0 +1,36 @@
+[project]
+name = "snowflake-agent-eval-harness"
+version = "1.0.0"
+description = "Snowflake agent evaluation harness: Cortex Analyst/Agent evals, semantic-view quality measurement, and AI Observability for external orchestrators"
+requires-python = ">=3.9"
+
+[dependency-groups]
+# Test/dev only. The demo itself is SQL + a Streamlit app; the harness
+# simulator has its own pinned deps in python/external_sim/requirements.txt
+# (and needs Python 3.9-3.11, because trulens-connectors-snowflake pins <3.12).
+dev = [
+    "pytest>=8",
+    "snowflake-connector-python>=3.6",
+    "pandas>=2",
+    "pyarrow>=14,<24",  # connector pins <24 on py3.14; unpinned emits a UserWarning every run
+    "pyyaml>=6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# -ra shows a summary of skips/failures, which matters because the live tiers
+# SKIP (not fail) when the VPN is down.
+addopts = "-ra --strict-markers --tb=short"
+markers = [
+    "preflight: fast go/no-go on a live account (<60s, no eval runs)",
+    "data: row counts, timestamp sanity, the six ambiguity traps",
+    "governance: row access policy and tenant role isolation",
+    "search: Cortex Search services serving",
+    "semantic: semantic view structure, v1-vs-v2, verified query parity",
+    "evals: persisted evaluation runs and their scores",
+    "agents: native and external agent traces, GPA metrics",
+    "claims: claim audit - every documented number backed by live evidence",
+    "repro: committed .sql reproduces the live objects",
+    "offline: pure python, no Snowflake required (CI-safe)",
+    "slow: takes more than ~30 seconds",
+]

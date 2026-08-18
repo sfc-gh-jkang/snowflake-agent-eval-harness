@@ -1,0 +1,46 @@
+# --- Secrets & credentials -------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+credentials.json
+**/secrets/
+**/*secret*
+**/*credential*
+**/*password*
+.streamlit/secrets.toml
+connections.toml
+
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv*/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# --- Generated demo data --------------------------------------------------
+# 13 MB of synthetic parquet, fully regenerable with `make data`.
+# Kept out of git so the repo stays small and the generator stays the
+# source of truth rather than a stale binary snapshot.
+data/*.parquet
+
+# --- Terraform (none today; guard against future additions) ---------------
+.terraform/
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# --- OS / editor ----------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swp
